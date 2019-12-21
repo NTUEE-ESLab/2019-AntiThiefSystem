@@ -1,0 +1,25 @@
+{
+    "config": {
+        "wifi-shield": {
+            "help": "Options are internal",
+            "value": "WIFI_ISM43362"
+        },
+        "wifi-ssid": {
+            "help": "WiFi SSID",
+            "value": "\"chan\""
+        },
+        "wifi-password": {
+            "help": "WiFi Password",
+            "value": "\"dave2159\""
+        },
+        "wifi-tx": {
+            "help": "WiFi Password",
+            "value": "D1"
+        }
+    },
+    "target_overrides": {
+        "*": {
+            "platform.stdio-convert-newlines": true
+        }
+    }
+}
