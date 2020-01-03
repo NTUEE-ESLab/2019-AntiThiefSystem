@@ -1,129 +1,67 @@
-# mbed-os-example-wifi #
+# Anti-Thief System #
+* Detects if anyone passes by
+* Takes picture and rings the alarm when someone does pass by
+* Browse and clear the pictures taken through a pygame interface
+* Receive email of picture taken upon detection
+* Switch windows when someone passes by
 
-Wi-Fi example for Mbed OS
+## STM32 setup ##
 
-(Note: To see this example in a rendered form you can import into the Arm Mbed Online Compiler, please see [the documentation](https://os.mbed.com/docs/mbed-os/latest/apis/wi-fi.html#wi-fi-example).)
+1. The libraries required for STM32:
+   * [BSP_B-L475E-IOT01](http://os.mbed.com/teams/ST/code/BSP_B-L475E-IOT01/)
+   * [mbed-os](https://github.com/ARMmbed/mbed-os/)
+   * [ST_INTERFACES](https://developer.mbed.org/teams/ST/code/ST_INTERFACES/)
+   * [X_NUCLEO_COMMON](https://developer.mbed.org/teams/ST/code/X_NUCLEO_COMMON/)
+   * [wifi-ism43362](https://github.com/ARMmbed/wifi-ism43362)
 
-## Getting started with the Wi-Fi API ##
+2. Change the wifi SSID and password in "mbed_app.json" to yours.
 
-This is an example of a Wi-Fi application using the Wi-Fi APIs that [Mbed OS](https://github.com/ARMmbed/mbed-os) provides.
+3. Change the "addr" to your PC's IP adress, "addrrpi" to your RPi's IP adress.
 
-The program brings up the Wi-Fi and the underlying network interface and uses it to scan available networks, connects to a network and prints interface and connection details.
+4. Connect ArduCAM 2MP ov2640 to your STM32.
 
-For more information about Wi-Fi APIs, please visit the [Mbed OS Wi-Fi](https://os.mbed.com/docs/latest/reference/wi-fi.html) documentation.
+5. Power on STM32 only after PC or RPi is waiting for connection.
 
-### Supported hardware ###
+6. While LED1 is flashing, STM32 is establishing internet connection.
+  (connecting to wifi and then connect to socket server)
 
-* All Mbed OS boards with build-in Wi-Fi module:
-    * [u-blox ODIN-W2](https://os.mbed.com/platforms/ublox-EVK-ODIN-W2/)
-    * [Realtek RTL8195AM](https://os.mbed.com/platforms/REALTEK-RTL8195AM/)
-    * [ST DISCO IOT board](https://os.mbed.com/platforms/ST-Discovery-L475E-IOT01A/) with integrated [ISM43362 WiFi Inventek module](https://github.com/ARMmbed/wifi-ism43362).
-    * [ST DISCO_F413ZH board](https://os.mbed.com/platforms/ST-Discovery-F413H/) with integrated [ISM43362 WiFi Inventek module](https://github.com/ARMmbed/wifi-ism43362).
-    * [Advantech WISE-150](https://os.mbed.com/modules/advantech-wise-1530/)
-    * USI WM-BN-BM-22
-    * MxChip EMW3166
-* Boards with external WiFi shields.
-    * [NUCLEO-F401RE](https://os.mbed.com/platforms/ST-Nucleo-F401RE/) with [X-NUCLEO-IDW04A1](http://www.st.com/content/st_com/en/products/ecosystems/stm32-open-development-environment/stm32-nucleo-expansion-boards/stm32-ode-connect-hw/x-nucleo-idw04a1.html) Wi-Fi expansion board using pins D8 and D2 _(of the Arduino connector)_.
-    * [NUCLEO-F401RE](https://os.mbed.com/platforms/ST-Nucleo-F401RE/) with [X-NUCLEO-IDW01M1](https://os.mbed.com/components/X-NUCLEO-IDW01M1/) Wi-Fi expansion board using pins PA_9 and PA_10 _(of the Morpho connector)_.
-    * [NUCLEO-F429ZI](https://os.mbed.com/platforms/ST-Nucleo-F429ZI/) with ESP8266-01 module using pins D1 and D0.
-    * Other Mbed targets with an ESP8266 module, [X-NUCLEO-IDW04A1](http://www.st.com/content/st_com/en/products/ecosystems/stm32-open-development-environment/stm32-nucleo-expansion-boards/stm32-ode-connect-hw/x-nucleo-idw04a1.html) or [X-NUCLEO-IDW01M1](https://os.mbed.com/components/X-NUCLEO-IDW01M1/) expansion board.
+7. While LED2 is on, STM32 is detecting if anyone passes through.
+  If LED2 is flashing, STM32 is too far from the target surface.
 
-#### Adding connectivity driver
+8. While LED3 is on, STM32 is sending data to the server.
 
-If the target does not have internal WiFi driver, or Mbed OS does not supply one, you need to add driver to your application and configure it to provide default WiFi interface.
+## With PC ##
 
-```
-mbed add <driver>
-```
+1. The libraries required for ATforPC.py:
+   pip install pynput
+   pip install pygame
 
-For example adding ISM43362 driver `mbed add wifi-ism43362` or X-Nucleo-IDW01M1 driver `mbed add wifi-x-nucleo-idw01m1`
-The ESP8266 driver is already suplied by Mbed OS.
+2. Change HOST(IP adress) to yours.
 
-Then pin names need to be configured as instructed in the drivers README file.
+3. Create folders called "images" and "alarmimage".
+  Download "0.jpg" and "alarm.wav" into "alarmimage".
 
-##  Getting started ##
+4. Execute ATforPC.py (python ATforPC.py) to start the program.
 
-1. Import the example.
-
-   ```
-   mbed import mbed-os-example-wifi
-   cd mbed-os-example-wifi
-   ```
-
-1. Configure the Wi-Fi shield and settings.
-   Edit ```mbed_app.json``` to include the correct Wi-Fi shield, SSID and password:
-
-```json
-{
-    "config": {
-        "wifi-ssid": {
-            "help": "WiFi SSID",
-            "value": "\"SSID\""
-        },
-        "wifi-password": {
-            "help": "WiFi Password",
-            "value": "\"PASSWORD\""
-        }
-    },
-    "target_overrides": {
-        "*": {
-            "platform.stdio-convert-newlines": true,
-            "esp8266.provide-default" : false
-        }
-    }
-}
-```
-
-   For build-in WiFi, you do not need to set any `provide-default` values. Those are required
-   if you use external WiFi shield.
-
-   Sample ```mbed_app.json``` files are provided for ESP8266 (```mbed_app_esp8266.json```), X-NUCLEO-IDW04A1 (```mbed_app_idw04a1.json```) and X-NUCLEO-IDW01M1 (```mbed_app_idw01m1```).
+5. Power on STM32 to connect to the program and start working.
 
 
-1. Compile and generate binary.
-    For example, for `GCC`:
-    ```
-    mbed compile -t GCC_ARM -m UBLOX_EVK_ODIN_W2
-    ```
+## With RPi ##
 
-1. Open a serial console session with the target platform using the following parameters:
-    * **Baud rate:** 9600
-    * **Data bits:** 8
-    * **Stop bits:** 1
-    * **Parity:** None
+1. Connect button to pin BCM 4, LED to pin BCM 18, buzzer to pin BCM 23.
 
-1. Copy or drag the application `mbed-os-example-wifi.bin` in the folder `mbed-os-example-wifi/BUILD/<TARGET NAME>/<PLATFORM NAME>` onto the target board.
+2. Change HOST(IP adress) to yours.
 
-1. The serial console should display a similar output to below, indicating a successful Wi-Fi connection:
-    ```
-    WiFi example
+3. Change toaddr to your email address.
 
-    Scan:
-    Network: Dave Hot Spot secured: Unknown BSSID: 00:01:02:03:04:05 RSSI: -58 Ch: 1
-    1 network available.
+4. Power on RPi to execute the program.
 
-    Connecting...
-    Success
+5. The LED will start flashing until connection with STM32 is established.
 
-    MAC: 00:01:02:03:04:05
-    IP: 192.168.0.5
-    Netmask: 255.255.255.0
-    Gateway: 192.168.0.1
-    RSSI: -27
+6. Power on STM32 to connect to the program and start working.
 
-    Sending HTTP request to www.arm.com...
-    sent 38 [GET / HTTP/1.1]
-    recv 64 [HTTP/1.1 301 Moved Permanently]
+7. After connected, you can use the button to control the on/off of the system.
+  The LED will represent the on/off of the system.
 
-    Done
-    ```
-
-## Troubleshooting
-
-If you have problems, you can review the [documentation](https://os.mbed.com/docs/latest/tutorials/debugging.html) for suggestions on what could be wrong and how to fix it.
-
-### License and contributions
-
-The software is provided under Apache-2.0 license. Contributions to this project are accepted under the same license. Please see contributing.md for more info.
-
-This project contains code from other projects. The original license text is included in those source files. They must comply with our license guide.
+8. If the alarm is triggered, the buzzer will ring, 
+  and you will get an email with the intruder's picture.
