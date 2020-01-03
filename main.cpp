@@ -22,37 +22,40 @@
 #include "stm32l475e_iot01_accelero.h"
 #include "VL53L0X.h"
 #include "ArduCAM2640.h"
-ArduCAM2640 g_arducam;
+
 /* jpeg buffer */
 #define IMAGE_JPG_SIZE 1024*16
 uint8_t g_image_buffer[IMAGE_JPG_SIZE];
+
 /* Setup camera */
+ArduCAM2640 g_arducam;
 I2C camI2C(PB_9,PB_8);
 SPI camSPI(PA_7,PA_6,PA_5);
 DigitalOut cam_spi_cs(PA_2);
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalInOut led3(LED3);
+
+/* Socket addresses */
 TCPSocket socket;
 SocketAddress addr("172.20.10.2",12035);
-nsapi_error_t response;
+SocketAddress addrrpi("172.20.10.5",12001);
+nsapi_error_t response;  // error response for socket
 
+Semaphore sem(0);    // Semaphore for communication between threads
+Thread data_thread;  // The thread for sending notification and picture
+Thread led_1;        // The thread to flash LED1
 
-Semaphore sem(0);
-Thread thread;
-Thread data_thread;
-Thread led_1;
-Thread led_2;
+/* Setup VL530X */
 static DevI2C devI2c(PB_11,PB_10);
 static DigitalOut shutdown_pin(PC_6_ALT0);
 VL53L0X vl53(&devI2c, &shutdown_pin, PC_7);
 
+/* Setup wifi module */
 #define WIFI_IDW0XX1    2
-
 #if (defined(TARGET_DISCO_L475VG_IOT01A) || defined(TARGET_DISCO_F413ZH))
 #include "ISM43362Interface.h"
 ISM43362Interface wifi(false);
-
 #else // External WiFi modules
 
 #if MBED_CONF_APP_WIFI_SHIELD == WIFI_IDW0XX1
@@ -84,8 +87,7 @@ const char *sec2str(nsapi_security_t sec)
     }
 }
 
-
-
+/* Function to flash LED1 */
 void led_thread(){
     while(true){
         led1 = !led1;
@@ -93,13 +95,7 @@ void led_thread(){
     }
 }
 
-void led2_thread(){
-    while(true){
-        led2 = !led2;
-        wait(0.1);
-    }
-}
-
+/* Function to send notifications and pictures */
 void send_pic(NetworkInterface *net)
 {
     while(true){
@@ -121,6 +117,7 @@ void send_pic(NetworkInterface *net)
             printf("Photo failure %d\r\n",image_size);
         }
         int len = sprintf(size,"%d", image_size);
+        printf(size);
         response = socket.send(size, len);
         if (0 >= response){
             printf("Error seding: %d\n", response);
@@ -136,6 +133,7 @@ void send_pic(NetworkInterface *net)
     }
 }
 
+/* Function to detect for intruders */
 void vl53thread(){
     led2 = 1;
     vl53.init_sensor(VL53L0X_DEFAULT_ADDRESS);
@@ -170,7 +168,7 @@ void vl53thread(){
 
 int main()
 {
-    //Connect to wifi
+    /* Connect to wifi */
     led_1.start(led_thread);
     while (true){
         printf("\nConnecting to %s...\n", MBED_CONF_APP_WIFI_SSID);
@@ -189,20 +187,30 @@ int main()
         }
     }
 
-    //Start socket
+    /* Start socket */
     printf("Start server\n");
     response = socket.open(&wifi);
     if (0 != response){
         printf("Error opening: %d\n", response);
     }
     while (true){
-        response = socket.connect(addr);
+        bool i;
+        if (i){
+            printf("connecting to AT...\n");
+            response = socket.connect(addr);
+        }
+        else{
+            printf("connecting to ATforPi...\n");
+            response = socket.connect(addrrpi);
+        }
         if (0 != response){
             printf("Error connecting: %d\n", response);
         }
         else{
+            printf("Success\n");
             break;
         }
+        i =!i;
         wait(0.1);
     }
     led_1.terminate();
@@ -216,12 +224,8 @@ int main()
     } 
 
     //Start main task
-    thread.start(vl53thread);
+    vl53thread();
     data_thread.start(callback(send_pic, &wifi));
 
-    while(1){
-        wait(100);
-    }
     return 0;
-
 }
